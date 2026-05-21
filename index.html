@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Kantin Pintar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        /* Custom Scrollbar for tables */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .modal-enter { animation: modalFadeIn 0.2s ease-out forwards; }
+        .modal-leave { animation: modalFadeOut 0.2s ease-in forwards; }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes modalFadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+
+        /* Optimasi Tampilan Mobile Web */
+        @media screen and (max-width: 768px) {
+            /* Cegah iOS melakukan auto-zoom saat fokus pada input */
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+            /* Memastikan area sentuh tombol & input lebih nyaman */
+            input, button {
+                min-height: 40px;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <nav class="bg-emerald-600 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-store text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide">KantinPintar</h1>
+            </div>
+            <div class="text-sm font-medium bg-emerald-700 px-3 py-1 rounded-full shadow-inner">
+                <i class="fa-solid fa-calendar-day mr-1"></i> <span id="current-date">Hari Ini</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Summary Report Section -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie text-emerald-500"></i> Laporan Ringkas Keseluruhan
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <!-- Total Revenue -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-l-emerald-500">
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Pendapatan</p>
+                    <p class="text-xl sm:text-2xl font-bold text-gray-800 truncate" id="summary-revenue">Rp 0</p>
+                </div>
+                <!-- Total Initial Stock -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-l-blue-500">
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Stok Awal</p>
+                    <p class="text-xl sm:text-2xl font-bold text-gray-800" id="summary-initial">0 <span class="text-sm font-normal text-gray-400">item</span></p>
+                </div>
+                <!-- Total Sold -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-l-orange-500">
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Terjual</p>
+                    <p class="text-xl sm:text-2xl font-bold text-gray-800" id="summary-sold">0 <span class="text-sm font-normal text-gray-400">item</span></p>
+                </div>
+                <!-- Total Remaining -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-l-purple-500">
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Sisa Jajanan</p>
+                    <p class="text-xl sm:text-2xl font-bold text-gray-800" id="summary-remaining">0 <span class="text-sm font-normal text-gray-400">item</span></p>
+                </div>
+                <!-- Top Seller -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 border-l-4 border-l-yellow-400 col-span-2 lg:col-span-1">
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Pendapatan Tertinggi</p>
+                    <p class="text-lg sm:text-xl font-bold text-gray-800 truncate" id="summary-top-seller">-</p>
+                    <p class="text-xs text-gray-500 mt-1 truncate" id="summary-top-seller-amount">Rp 0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <h2 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                <i class="fa-solid fa-users text-emerald-500"></i> Daftar Pemilik Jajanan
+            </h2>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="promptAddSeller()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Tambah Pemilik
+                </button>
+                <button onclick="confirmResetData()" class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg font-medium shadow-sm transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Sellers Grid -->
+        <div id="sellers-container" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <!-- Dynamic Content goes here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
+            <div class="w-24 h-24 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center text-4xl mb-4">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-700 mb-2">Belum ada data jajanan</h3>
+            <p class="text-gray-500 max-w-md mx-auto mb-6">Mulai catat jajanan siswa dengan menambahkan pemilik jajanan pertama Anda.</p>
+            <button onclick="promptAddSeller()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-md transition-colors duration-200">
+                Tambah Pemilik Jajanan
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Custom Modal Container (Hidden by default) -->
+    <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
+        <div id="modal-content" class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 id="modal-title" class="text-lg font-bold text-gray-800">Judul Modal</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <!-- Body -->
+            <div class="p-6">
+                <p id="modal-message" class="text-gray-600 mb-4 hidden"></p>
+                <div id="modal-input-container" class="hidden">
+                    <input type="text" id="modal-input" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" placeholder="Ketik di sini...">
+                    <p id="modal-error" class="text-red-500 text-sm mt-2 hidden">Input tidak boleh kosong.</p>
+                </div>
+            </div>
+            <!-- Footer -->
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button id="modal-btn-cancel" onclick="closeModal()" class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-200 transition-colors">Batal</button>
+                <button id="modal-btn-confirm" class="px-4 py-2 rounded-lg font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management & Storage Helpers ---
+        const COOKIE_NAME = 'kantin_pintar_data';
+        const STORAGE_KEY = 'kantin_pintar_data'; // Cadangan jika cookies dinonaktifkan
+        let sellers = [];
+
+        // Fungsi Menulis Cookie (Berlaku 1 tahun / 365 Hari)
+        function setCookie(name, value, days = 365) {
+            try {
+                const jsonStr = JSON.stringify(value);
+                const expires = new Date();
+                expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+                document.cookie = `${name}=${encodeURIComponent(jsonStr)};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+            } catch (e) {
+                console.error("Gagal menyimpan cookie:", e);
+            }
+        }
+
+        // Fungsi Membaca Cookie
+        function getCookie(name) {
+            try {
+                const nameEQ = name + "=";
+                const ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) {
+                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                    }
+                }
+            } catch (e) {
+                console.error("Gagal membaca cookie:", e);
+            }
+            return null;
+        }
+
+        // --- Utility: Format Currency ---
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(number);
+        };
+
+        // --- Utility: Format Number with Dot ---
+        const formatNumberWithDot = (val) => {
+            if (val === '' || val === null || val === undefined) return '';
+            // Hanya ambil angka dan hilangkan angka nol di depan
+            let strVal = val.toString().replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+            // Tambahkan titik setiap 3 digit
+            return strVal.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        };
+
+        // --- Utility: Generate ID ---
+        const generateId = () => Math.random().toString(36).substring(2, 9);
+
+        // --- Date Header ---
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('id-ID', options);
+
+
+        // --- STREAMING_CHUNK:Handling Modal Logic (Prompt & Confirm)... ---
+        let modalConfirmCallback = null;
+
+        function openModal({ title, message, isPrompt = false, confirmText = 'Simpan', confirmColor = 'bg-emerald-600', onConfirm }) {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            const titleEl = document.getElementById('modal-title');
+            const messageEl = document.getElementById('modal-message');
+            const inputContainer = document.getElementById('modal-input-container');
+            const inputEl = document.getElementById('modal-input');
+            const errorEl = document.getElementById('modal-error');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+
+            titleEl.textContent = title;
+            btnConfirm.textContent = confirmText;
+            
+            // Reset colors
+            btnConfirm.className = `px-4 py-2 rounded-lg font-medium text-white shadow-sm transition-colors ${confirmColor} hover:opacity-90`;
+
+            if (isPrompt) {
+                messageEl.classList.add('hidden');
+                inputContainer.classList.remove('hidden');
+                inputEl.value = '';
+                errorEl.classList.add('hidden');
+                setTimeout(() => inputEl.focus(), 100);
+            } else {
+                messageEl.textContent = message;
+                messageEl.classList.remove('hidden');
+                inputContainer.classList.add('hidden');
+            }
+
+            modalConfirmCallback = () => {
+                if (isPrompt) {
+                    const val = inputEl.value.trim();
+                    if (!val) {
+                        errorEl.classList.remove('hidden');
+                        return;
+                    }
+                    onConfirm(val);
+                } else {
+                    onConfirm();
+                }
+                closeModal();
+            };
+
+            // Set event listeners
+            btnConfirm.onclick = modalConfirmCallback;
+            inputEl.onkeyup = (e) => {
+                if (e.key === 'Enter') modalConfirmCallback();
+            };
+
+            // Show animation
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            content.classList.remove('modal-leave');
+            content.classList.add('modal-enter');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            
+            content.classList.remove('modal-enter');
+            content.classList.add('modal-leave');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        // --- STREAMING_CHUNK:Data operations (CRUD)... ---
+        
+        function loadData() {
+            // Memuat data dari Cookie terlebih dahulu, cadangan ke localStorage jika cookie kosong
+            let stored = getCookie(COOKIE_NAME);
+            if (!stored) {
+                const backup = localStorage.getItem(STORAGE_KEY);
+                if (backup) {
+                    try {
+                        stored = JSON.parse(backup);
+                    } catch (e) {
+                        stored = null;
+                    }
+                }
+            }
+
+            if (stored && Array.isArray(stored)) {
+                sellers = stored;
+            } else {
+                sellers = [];
+            }
+            render();
+        }
+
+        function saveData() {
+            // Simpan secara sinkron ke Cookie & localStorage
+            setCookie(COOKIE_NAME, sellers);
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(sellers));
+            } catch (e) {
+                console.warn("Gagal menyimpan cadangan ke localStorage:", e);
+            }
+            render();
+        }
+
+        function promptAddSeller() {
+            openModal({
+                title: 'Tambah Pemilik Jajanan',
+                isPrompt: true,
+                onConfirm: (name) => {
+                    sellers.push({
+                        id: generateId(),
+                        name: name,
+                        snacks: []
+                    });
+                    saveData();
+                }
+            });
+        }
+
+        function confirmDeleteSeller(sellerId, sellerName) {
+            openModal({
+                title: 'Hapus Pemilik',
+                message: `Apakah Anda yakin ingin menghapus data ${sellerName} beserta seluruh jajanannya?`,
+                confirmText: 'Hapus',
+                confirmColor: 'bg-red-600',
+                onConfirm: () => {
+                    sellers = sellers.filter(s => s.id !== sellerId);
+                    saveData();
+                }
+            });
+        }
+
+        function addSnack(sellerId) {
+            const seller = sellers.find(s => s.id === sellerId);
+            if (seller) {
+                seller.snacks.push({
+                    id: generateId(),
+                    name: 'Jajanan Baru',
+                    initialStock: 0,
+                    price: 0,
+                    sold: 0
+                });
+                saveData();
+            }
+        }
+
+        function updateSnack(sellerId, snackId, field, value) {
+            const seller = sellers.find(s => s.id === sellerId);
+            if (seller) {
+                const snack = seller.snacks.find(sn => sn.id === snackId);
+                if (snack) {
+                    if (field === 'name') {
+                        snack[field] = value;
+                    } else {
+                        // Hilangkan titik jika input berupa string (khusus input Harga)
+                        let cleanValue = typeof value === 'string' ? value.replace(/\./g, '') : value;
+                        
+                        // Parse to integer/number and prevent negative or NaN
+                        let num = parseInt(cleanValue, 10);
+                        if (isNaN(num)) num = 0;
+                        if (num < 0) num = 0;
+                        
+                        // Rule: sold cannot exceed initialStock (prevent negative remaining)
+                        if (field === 'sold' && num > snack.initialStock) {
+                            num = snack.initialStock; // Clamp to max stock
+                        }
+                        if (field === 'initialStock' && num < snack.sold) {
+                            snack.sold = num; // Adjust sold if stock is lowered below sold
+                        }
+                        
+                        snack[field] = num;
+                    }
+                    saveData();
+                }
+            }
+        }
+
+        function confirmDeleteSnack(sellerId, snackId) {
+            const seller = sellers.find(s => s.id === sellerId);
+            if (seller) {
+                seller.snacks = seller.snacks.filter(sn => sn.id !== snackId);
+                saveData();
+            }
+        }
+
+        function confirmResetData() {
+            if(sellers.length === 0) return;
+            openModal({
+                title: 'Reset Semua Data',
+                message: 'Perhatian! Tindakan ini akan menghapus semua data pemilik dan jajanan. Apakah Anda yakin?',
+                confirmText: 'Ya, Reset',
+                confirmColor: 'bg-red-600',
+                onConfirm: () => {
+                    sellers = [];
+                    saveData();
+                }
+            });
+        }
+
+        // --- STREAMING_CHUNK:Rendering DOM and Calculating Reports... ---
+
+        function render() {
+            const container = document.getElementById('sellers-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            // Clear current view
+            container.innerHTML = '';
+            
+            if (sellers.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                container.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            // Report Variables
+            let totalOverallInitial = 0;
+            let totalOverallSold = 0;
+            let totalOverallRemaining = 0;
+            let totalOverallRevenue = 0;
+            let topSeller = { name: '-', revenue: 0 };
+
+            // Build UI
+            sellers.forEach(seller => {
+                let sellerTotalRevenue = 0;
+                let sellerTotalSold = 0;
+                let sellerTotalStock = 0;
+
+                // Create Card element
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full';
+                
+                // Card Header & Mobile Swipe Guide
+                let cardHTML = `
+                    <div class="bg-emerald-50/50 px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-lg">
+                                ${seller.name.charAt(0).toUpperCase()}
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800">${seller.name}</h3>
+                        </div>
+                        <button onclick="confirmDeleteSeller('${seller.id}', '${seller.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Hapus Pemilik">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <!-- Indikator Geser untuk Layar Mobile/HP -->
+                        <div class="xl:hidden flex items-center gap-1.5 text-xs text-gray-400 mb-2 font-medium bg-gray-50 px-3 py-1.5 rounded-lg w-max">
+                            <i class="fa-solid fa-left-right animate-pulse text-emerald-500"></i>
+                            <span>Geser tabel ke samping mendatar</span>
+                        </div>
+                        
+                        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200 mb-4 shadow-sm">
+                            <table class="w-full text-left border-collapse min-w-[620px]">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                                        <th class="p-3 font-medium border-b border-gray-200">Nama Jajanan</th>
+                                        <th class="p-3 font-medium border-b border-gray-200 w-24">Stok</th>
+                                        <th class="p-3 font-medium border-b border-gray-200 w-32">Harga (Rp)</th>
+                                        <th class="p-3 font-medium border-b border-gray-200 w-24">Terjual</th>
+                                        <th class="p-3 font-medium border-b border-gray-200 w-24 text-center">Sisa</th>
+                                        <th class="p-3 font-medium border-b border-gray-200 w-36 text-right">Total</th>
+                                        <th class="p-3 font-medium border-b border-gray-200 w-12 text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-sm divide-y divide-gray-100">
+                `;
+
+                if (seller.snacks.length === 0) {
+                    cardHTML += `
+                        <tr>
+                            <td colspan="7" class="p-6 text-center text-gray-400 italic">Belum ada jajanan yang ditambahkan.</td>
+                        </tr>
+                    `;
+                }
+
+                // Loop Snacks
+                seller.snacks.forEach(snack => {
+                    const remaining = snack.initialStock - snack.sold;
+                    const revenue = snack.price * snack.sold;
+                    
+                    sellerTotalStock += snack.initialStock;
+                    sellerTotalSold += snack.sold;
+                    sellerTotalRevenue += revenue;
+
+                    // Update Grand Totals
+                    totalOverallInitial += snack.initialStock;
+                    totalOverallSold += snack.sold;
+                    totalOverallRemaining += remaining;
+                    totalOverallRevenue += revenue;
+
+                    cardHTML += `
+                        <tr class="hover:bg-gray-50/50 transition-colors group">
+                            <td class="p-2">
+                                <input type="text" value="${snack.name}" onchange="updateSnack('${seller.id}', '${snack.id}', 'name', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 focus:outline-none px-2 py-1 transition-colors">
+                            </td>
+                            <td class="p-2">
+                                <input type="number" value="${snack.initialStock}" min="0" onchange="updateSnack('${seller.id}', '${snack.id}', 'initialStock', this.value)" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-center">
+                            </td>
+                            <td class="p-2">
+                                <input type="text" inputmode="numeric" value="${formatNumberWithDot(snack.price)}" oninput="this.value = formatNumberWithDot(this.value)" onchange="updateSnack('${seller.id}', '${snack.id}', 'price', this.value)" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-right">
+                            </td>
+                            <td class="p-2">
+                                <input type="number" value="${snack.sold}" min="0" max="${snack.initialStock}" onchange="updateSnack('${seller.id}', '${snack.id}', 'sold', this.value)" class="w-full bg-emerald-50 border border-emerald-200 rounded px-2 py-1 text-emerald-700 font-semibold focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-center">
+                            </td>
+                            <td class="p-3 text-center">
+                                <span class="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${remaining === 0 && snack.initialStock > 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-700'}">${remaining}</span>
+                            </td>
+                            <td class="p-3 text-right font-semibold text-gray-700">
+                                ${formatRupiah(revenue)}
+                            </td>
+                            <td class="p-2 text-center">
+                                <button onclick="confirmDeleteSnack('${seller.id}', '${snack.id}')" class="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-all">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Top Seller Logic
+                if (sellerTotalRevenue > topSeller.revenue) {
+                    topSeller = { name: seller.name, revenue: sellerTotalRevenue };
+                }
+
+                cardHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mt-auto flex justify-between items-end border-t border-gray-100 pt-4">
+                            <button onclick="addSnack('${seller.id}')" class="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 px-3 py-1.5 hover:bg-emerald-50 rounded transition-colors">
+                                <i class="fa-solid fa-plus-circle"></i> Tambah Jajanan
+                            </button>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Total Pendapatan ${seller.name}</p>
+                                <p class="text-xl font-bold text-emerald-600">${formatRupiah(sellerTotalRevenue)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                card.innerHTML = cardHTML;
+                container.appendChild(card);
+            });
+
+            // Update Summary UI
+            document.getElementById('summary-revenue').textContent = formatRupiah(totalOverallRevenue);
+            document.getElementById('summary-initial').innerHTML = `${totalOverallInitial} <span class="text-sm font-normal text-gray-400">item</span>`;
+            document.getElementById('summary-sold').innerHTML = `${totalOverallSold} <span class="text-sm font-normal text-gray-400">item</span>`;
+            document.getElementById('summary-remaining').innerHTML = `${totalOverallRemaining} <span class="text-sm font-normal text-gray-400">item</span>`;
+            
+            document.getElementById('summary-top-seller').textContent = topSeller.revenue > 0 ? topSeller.name : '-';
+            document.getElementById('summary-top-seller-amount').textContent = topSeller.revenue > 0 ? formatRupiah(topSeller.revenue) : 'Rp 0';
+        }
+
+        // --- Initialize App ---
+        document.addEventListener('DOMContentLoaded', loadData);
+
+    </script>
+</body>
+</html>
