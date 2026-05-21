@@ -1,0 +1,2 @@
+# KasirPintar
+Web Kasir Sederhana
